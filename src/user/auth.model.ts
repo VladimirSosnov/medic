@@ -1,5 +1,5 @@
 import { compare, genSalt, hash } from 'bcryptjs';
-import { IUser } from './user.interface';
+import { IUser } from './auth.interface';
 
 export class User implements IUser {
 	email?: string;

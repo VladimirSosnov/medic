@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ChatGateway } from './chat/chat.gateway';
-import { UserModule } from './user/user.module';
+import { AuthModule } from './user/auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
@@ -9,7 +9,7 @@ import { PassportModule } from '@nestjs/passport';
 @Module({
 	imports: [
 		// PassportModule.register({ defaultStrategy: 'jwt' }),
-		UserModule,
+		AuthModule,
 		ConfigModule.forRoot({ isGlobal: true }),
 		TypeOrmModule.forRootAsync({
 			imports: [ConfigModule],

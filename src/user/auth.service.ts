@@ -1,27 +1,33 @@
-import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
-import { UserDto } from './dto/user.dto';
+import {
+	BadRequestException,
+	HttpException,
+	Injectable,
+	UnauthorizedException,
+} from '@nestjs/common';
+import { LoginDto } from './dto/login.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from './entity/user.entity';
-import { User } from './user.model';
+import { User } from './auth.model';
 import { JwtService } from '@nestjs/jwt';
+import { RegisterDto } from './dto/register.dto';
 
 @Injectable()
-export class UserService {
+export class AuthService {
 	constructor(
 		@InjectRepository(UserEntity) private readonly userRepository: Repository<UserEntity>,
 		private readonly jwtService: JwtService,
 	) {}
 
-	public async login(user: UserDto) {
+	public async login(user: LoginDto) {
 		const { id } = await this.validateUser(user);
 		const jwtToken = await this.createToken(id);
 		return { token: jwtToken };
 	}
 
-	public async register(userData: UserDto) {
+	public async register(userData: RegisterDto) {
 		if (userData.email && userData.phone) {
-			throw new BadRequestException(
+			throw new UnauthorizedException(
 				`Запрос должен иметь email: ${userData.email} или phone_number: ${userData.phone}`,
 			);
 		}
@@ -34,13 +40,14 @@ export class UserService {
 		});
 
 		if (existsUser) {
-			throw new BadRequestException(`Пользователь уже существует`);
+			throw new UnauthorizedException(`Пользователь уже существует`);
 		}
 		const user = await new User(userData.email, userData.phone, userData.name, '').setPassword(
 			userData.password,
 		);
 		const newUser = await this.userRepository.save(user);
-		return { email: newUser.email };
+		const result = newUser.email ? { email: newUser.email } : { phone: newUser.phone };
+		return result;
 	}
 
 	async createToken(id: number): Promise<string> {
@@ -50,7 +57,7 @@ export class UserService {
 
 	async validateUser(user) {
 		if (user.email && user.phone) {
-			throw new BadRequestException(
+			throw new UnauthorizedException(
 				`Запрос должен иметь email: ${user.email} или phone_number: ${user.phone}`,
 			);
 		}
@@ -61,7 +68,7 @@ export class UserService {
 			where,
 		});
 		if (!existsUser) {
-			throw new BadRequestException(`Ошибка! Неверный логин или пароль`);
+			throw new UnauthorizedException(`Ошибка! Неверный логин или пароль`);
 		}
 		const isCorrectPassword = await new User(
 			existsUser.email,
@@ -70,7 +77,7 @@ export class UserService {
 			existsUser.passwordHash,
 		).validatePassword(user.password);
 		if (!isCorrectPassword) {
-			throw new BadRequestException(`Ошибка! Неверный логин или пароль`);
+			throw new UnauthorizedException(`Ошибка! Неверный логин или пароль`);
 		}
 		return { id: existsUser.id };
 	}
